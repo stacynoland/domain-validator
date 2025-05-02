@@ -104,7 +104,7 @@ class DomainValidator:
         if self.validate_domain_re(domain) is False:
             raise ValueError("Invalid domain name.")
         try:
-            return domain.encode("punycode").decode("ascii")
+            return domain.encode("idna").decode("ascii")
         except Exception as e:
             raise ValueError(f"Error converting to Punycode: {e}")
 
@@ -121,7 +121,7 @@ class DomainValidator:
         if self.validate_domain_re(domain) is False:
             raise ValueError("Invalid domain name.")
         try:
-            return domain.encode("ascii").decode("punycode")
+            return domain.encode("ascii").decode("idna")
         except Exception as e:
             raise ValueError(f"Error converting to Unicode: {e}")
 
