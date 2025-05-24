@@ -1,24 +1,23 @@
 import re
 from secrets import choice
 from string import ascii_letters, digits
-from typing import Literal
 
 import dns.resolver as resolver
 
 
 class DomainValidator:
     """
-    A class to validate domain names and generate verification codes.
+    A class to validate domain names using generated TXT verification codes.
     """
 
-    def __init__(self, ascii_only: bool = False, domain_max_length: int = 255):
-        # Unicode domain name pattern with support for Hindi characters
+    def __init__(self, ascii_only: bool = True, domain_max_length: int = 255):
+        # Unicode domain name pattern with specific support for Hindi characters
         self.domain_re = (
             r"^((?!-)[\w\u0900-\u097F-]{1,63}(?<!-)"
             r"\.(?!-)[\w\u0900-\u097F-]{1,63}(?<!-))*$"
         )
-        self.ascii_only = ascii_only  # Flag to use only ASCII characters
-        self.domain_max_length = domain_max_length  # Maximum length of the domain name
+        self.ascii_only = ascii_only  # Flag for only ASCII characters
+        self.domain_max_length = domain_max_length  # Domain name maximum length
 
         if self.ascii_only:
             self.re_pattern = re.compile(self.domain_re, re.ASCII | re.IGNORECASE)
@@ -59,13 +58,13 @@ class DomainValidator:
 
     def validate_domain_dns(self, domain: str) -> bool:
         """
-        Check if the domain name is valid by checking DNS resolution.
+        Validate the domain name resolves with DNS.
 
         Parameters:
             domain -- The domain name to validate.
 
         Returns:
-            bool -- True if the domain name is valid, False otherwise.
+            bool -- True if the domain name resolves, False otherwise.
         """
         try:
             resolver.resolve(domain, "NS")
@@ -73,9 +72,9 @@ class DomainValidator:
         except (resolver.NXDOMAIN, resolver.NoAnswer):
             return False
 
-    def validate_domain_name(self, domain: str) -> bool:
+    def validate_domain(self, domain: str) -> bool:
         """
-        Validate the domain name by checking its format, length, and DNS resolution.
+        Validate the domain name by checking format, length, and DNS resolution.
 
         Parameters:
             domain -- The domain name to validate.
@@ -93,7 +92,7 @@ class DomainValidator:
 
     def unicode_to_punycode(self, domain: str) -> str:
         """
-        Convert a Unicode domain name to Punycode for ASCII compliance.
+        Convert a Unicode domain name to Punycode.
 
         Parameters:
             domain -- The Unicode domain name to convert.
@@ -101,6 +100,10 @@ class DomainValidator:
         Returns:
             str -- The Punycode representation of the domain name.
         """
+        if self.ascii_only is True:
+            raise NotImplementedError(
+                "Punycode conversion is not supported for ASCII-only mode."
+            )
         if self.validate_domain_re(domain) is False:
             raise ValueError("Invalid domain name.")
         try:
@@ -118,6 +121,10 @@ class DomainValidator:
         Returns:
             str -- The Unicode representation of the domain name.
         """
+        if self.ascii_only is True:
+            raise NotImplementedError(
+                "Punycode to Unicode conversion is not supported for ASCII-only mode."
+            )
         if self.validate_domain_re(domain) is False:
             raise ValueError("Invalid domain name.")
         try:
@@ -125,48 +132,59 @@ class DomainValidator:
         except Exception as e:
             raise ValueError(f"Error converting to Unicode: {e}")
 
-    def generate_txt_code(
-        self, prefix: str, length: int = 26, sep: Literal["=", "-", "_", "|"] = "="
-    ) -> str:
+    def generate_txt_code(self, length: int = 26, prefix: str = "") -> str:
         """
-        Generate a random verification code for TXT record with a prefix.
+        Generate a random verification code for TXT record with optional prefix.
+
+        Example:
+            >>> generate_txt_code()
+            '84yfCdasrZejOPNeFuBpgGXcvy'
+
+        Example:
+            >>> generate_txt_code(length=26, prefix="site_verify")
+            'site_verify=84yfCdasrZejOPNeFuBpgGXcvy'
 
         Parameters:
-            prefix -- Prefix to identify who generated the code.
             length -- Length of the random code to generate.
-            sep -- Separator between the prefix and the code.
+            prefix -- Optional prefix for the code (e.g., site_verify).
 
         Returns:
-            str -- Generated string with TXT verification code.
+            str -- Generated string with random verification code.
         """
-        if not prefix:
-            raise ValueError("Prefix cannot be empty.")
-        if not isinstance(prefix, str):
+        if prefix and not isinstance(prefix, str):
             raise ValueError("Prefix must be a string.")
-        if not isinstance(length, int) or length <= 0:
-            raise ValueError("Length must be a positive integer.")
+        if not isinstance(length, int) or length <= 0 or length > 255:
+            raise ValueError("Length must be a positive integer and max of 255.")
         code = "".join(choice(ascii_letters + digits) for _ in range(length))
-        return f"{prefix}{sep}{code}"
+        if prefix:
+            if (length + len(prefix)) > 255:
+                raise ValueError(
+                    "TXT record cannot exceed 255 characters, including prefix."
+                )
+            return f"{prefix}={code}"
+        return code
 
-    def verify_txt_code(self, domain: str, txt_code: str) -> bool:
+    def verify_ownership(self, domain: str, txt_code: str, txt_host: str = "") -> bool:
         """
-        Verify the TXT records for the domain contain the provided code.
+        Verify domain ownership by checking if the TXT records for the domain
+        contain the provided code.
 
         Parameters:
             domain -- Domain being verified.
             txt_code -- Code string to verify in TXT record.
+            txt_host -- Optional host (i.e., subdomain) for the TXT record.
 
         Returns:
             bool -- True if a TXT record contains the code, False otherwise.
         """
+        if txt_host:
+            domain = f"{txt_host}.{domain}"
         try:
             response = resolver.resolve(domain, "TXT")
             for rdata in response:
-                if f"{txt_code}" == rdata.strings[0].decode("utf-8"):
+                if txt_code == rdata.to_text().strip('"'):
                     return True
         except (resolver.NXDOMAIN, resolver.NoAnswer) as e:
-            print(f"Error resolving TXT records: {e}")
+            print("Error resolving TXT records:")
+            raise e
         return False
-
-
-domain_validator = DomainValidator()
