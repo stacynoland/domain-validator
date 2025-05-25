@@ -309,6 +309,12 @@ def test_generate_prefixed_txt_code(prefix, length, expected):
             None,
             pytest.raises(ValueError),
         ),
+        (
+            "stacynoland.net",
+            "84yfCdasrZejOPNeFuBpgGXcvy",
+            None,
+            pytest.raises(ValueError),
+        ),
     ],
 )
 def test_domain_ownership(domain, txt_code, txt_host, expected):

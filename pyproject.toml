@@ -78,7 +78,8 @@ static = [
 ]
 
 [tool.tox.env_run_base]
-description = "Run test under {base_python}"
+description = "Run tests under {base_python}"
+set_env = { PYTHONPATH = "src" }
 package = "wheel"
 dependency_groups = ["tests"]
 commands = [
