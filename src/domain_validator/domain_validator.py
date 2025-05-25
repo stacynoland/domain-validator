@@ -7,11 +7,11 @@ import dns.resolver as resolver
 
 class DomainValidator:
     """
-    A class to validate domain names using generated TXT verification codes.
+    A class to validate domain names and ownership using TXT verification codes.
     """
 
     def __init__(self, ascii_only: bool = True, domain_max_length: int = 255):
-        # Unicode domain name pattern with specific support for Hindi characters
+        # Domain name pattern with support for Hindi characters specifically included
         self.domain_re = (
             r"^((?!-)[\w\u0900-\u097F-]{1,63}(?<!-)"
             r"\.(?!-)[\w\u0900-\u097F-]{1,63}(?<!-))*$"
@@ -24,7 +24,7 @@ class DomainValidator:
         else:
             self.re_pattern = re.compile(self.domain_re, re.UNICODE | re.IGNORECASE)
 
-    def validate_domain_re(self, domain: str) -> bool:
+    def validate_domain_re(self, domain: str) -> None:
         """
         Validate the given domain name matches the regular expression.
 
@@ -32,15 +32,19 @@ class DomainValidator:
             domain -- The domain name to validate.
 
         Returns:
-            bool -- True if the domain name is a valid format, False otherwise.
+            None -- Domain name passes regex.
+        Raises:
+            ValueError -- Fails regex matching or issue with domain name.
         """
         if not domain:
             raise ValueError("Domain cannot be empty.")
         if not isinstance(domain, str):
             raise ValueError("Domain must be a string.")
-        return bool(self.re_pattern.match(domain))
+        if not bool(self.re_pattern.match(domain)):
+            raise ValueError(f"Invalid domain name: {domain}.")
+        return
 
-    def validate_domain_length(self, domain: str) -> bool:
+    def validate_domain_length(self, domain: str) -> None:
         """
         Validate the length of the domain name.
 
@@ -48,15 +52,21 @@ class DomainValidator:
             domain -- The domain name to validate.
 
         Returns:
-            bool -- True if the domain name length is valid, False otherwise.
+            None -- Domain name length is valid.
+        Raises:
+            ValueError -- Length not valid or issue with domain name.
         """
         if not domain:
             raise ValueError("Domain cannot be empty.")
         if not isinstance(domain, str):
             raise ValueError("Domain must be a string.")
-        return len(domain) <= self.domain_max_length
+        if len(domain) > self.domain_max_length:
+            raise ValueError(
+                f"Domain name exceeds maximum length of {self.domain_max_length}."
+            )
+        return
 
-    def validate_domain_dns(self, domain: str) -> bool:
+    def validate_domain_dns(self, domain: str) -> None:
         """
         Validate the domain name resolves with DNS.
 
@@ -64,15 +74,17 @@ class DomainValidator:
             domain -- The domain name to validate.
 
         Returns:
-            bool -- True if the domain name resolves, False otherwise.
+            None -- Domain name resolves with DNS.
+        Raises:
+            ValueError -- Domain name does not resolve with DNS.
         """
         try:
             resolver.resolve(domain, "NS")
-            return True
-        except (resolver.NXDOMAIN, resolver.NoAnswer):
-            return False
+        except Exception as e:
+            raise ValueError(f"Domain name did not resolve with DNS: {domain}.") from e
+        return
 
-    def validate_domain(self, domain: str) -> bool:
+    def is_domain_valid(self, domain: str) -> bool:
         """
         Validate the domain name by checking format, length, and DNS resolution.
 
@@ -82,11 +94,11 @@ class DomainValidator:
         Returns:
             bool -- True if the domain name is valid, False otherwise.
         """
-        if not self.validate_domain_re(domain):
-            return False
-        if not self.validate_domain_length(domain):
-            return False
-        if not self.validate_domain_dns(domain):
+        try:
+            self.validate_domain_re(domain)
+            self.validate_domain_length(domain)
+            self.validate_domain_dns(domain)
+        except ValueError:
             return False
         return True
 
@@ -99,13 +111,19 @@ class DomainValidator:
 
         Returns:
             str -- The Punycode representation of the domain name.
+
+        Raises:
+            NotImplementedError -- Punycode conversion not supported in ASCII-only mode.
+            ValueError -- Domain name is invalid or issue with domain name.
         """
         if self.ascii_only is True:
             raise NotImplementedError(
                 "Punycode conversion is not supported for ASCII-only mode."
             )
-        if self.validate_domain_re(domain) is False:
-            raise ValueError("Invalid domain name.")
+        try:
+            self.validate_domain_re(domain)
+        except ValueError:
+            raise
         try:
             return domain.encode("idna").decode("ascii")
         except Exception as e:
@@ -120,13 +138,19 @@ class DomainValidator:
 
         Returns:
             str -- The Unicode representation of the domain name.
+
+        Raises:
+            NotImplementedError -- Punycode conversion not supported in ASCII-only mode.
+            ValueError -- Domain name is invalid or issue with domain name.
         """
         if self.ascii_only is True:
             raise NotImplementedError(
                 "Punycode to Unicode conversion is not supported for ASCII-only mode."
             )
-        if self.validate_domain_re(domain) is False:
-            raise ValueError("Invalid domain name.")
+        try:
+            self.validate_domain_re(domain)
+        except ValueError:
+            raise
         try:
             return domain.encode("ascii").decode("idna")
         except Exception as e:
@@ -141,7 +165,7 @@ class DomainValidator:
             '84yfCdasrZejOPNeFuBpgGXcvy'
 
         Example:
-            >>> generate_txt_code(length=26, prefix="site_verify")
+            >>> generate_txt_code(length=30, prefix="site_verify")
             'site_verify=84yfCdasrZejOPNeFuBpgGXcvy'
 
         Parameters:
@@ -164,10 +188,21 @@ class DomainValidator:
             return f"{prefix}={code}"
         return code
 
-    def verify_ownership(self, domain: str, txt_code: str, txt_host: str = "") -> bool:
+    def domain_ownership_confirmed(
+        self, domain: str, txt_code: str, txt_host: str = ""
+    ) -> bool:
         """
-        Verify domain ownership by checking if the TXT records for the domain
-        contain the provided code.
+        Verify domain ownership/control of a domain by checking TXT records
+        contain the specified TXT code.
+
+        Example:
+            >>> domain_ownership_confirmed("example.com", "84yfCdasrZejOPNeFuBpgGXcvy")
+            True
+
+            >>> domain_ownership_confirmed(
+                    "example.com", "test_txt=84yfCdasrZejOPNeFuBpgGXcvy", "subdomain"
+                )
+            True
 
         Parameters:
             domain -- Domain being verified.
@@ -176,7 +211,12 @@ class DomainValidator:
 
         Returns:
             bool -- True if a TXT record contains the code, False otherwise.
+
+        Raises:
+            ValueError -- Domain name is invalid or TXT records cannot be resolved.
         """
+        if not self.is_domain_valid(domain):
+            raise ValueError("Invalid domain name.")
         if txt_host:
             domain = f"{txt_host}.{domain}"
         try:
@@ -185,6 +225,5 @@ class DomainValidator:
                 if txt_code == rdata.to_text().strip('"'):
                     return True
         except (resolver.NXDOMAIN, resolver.NoAnswer) as e:
-            print("Error resolving TXT records:")
-            raise e
+            raise ValueError("Error resolving TXT records:") from e
         return False

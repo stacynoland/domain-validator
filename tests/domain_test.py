@@ -1,6 +1,5 @@
 from contextlib import nullcontext
 
-import dns.resolver as resolver
 import pytest
 
 from domain_validator import DomainValidator
@@ -13,26 +12,26 @@ short_domain_validator = DomainValidator(domain_max_length=150)
 @pytest.mark.parametrize(
     "domain, expected",
     [
-        ("000000.org", nullcontext(True)),
-        ("python.org", nullcontext(True)),
-        ("python.co.uk", nullcontext(True)),
-        ("python.tk", nullcontext(True)),
-        ("hg.python.org", nullcontext(True)),
-        ("python-python.com", nullcontext(True)),
-        ("domain.with.idn.tld.उदाहरण.परीक्षकЂҁ", nullcontext(True)),
-        ("例子.测试", nullcontext(True)),
-        ("ıçğü.com", nullcontext(True)),
-        ("python.name.uk", nullcontext(True)),
-        ("dashinpunytld.xn---c", nullcontext(True)),
-        ("xn--7ca6byfyc.com", nullcontext(True)),
-        ("we24.com", nullcontext(True)),
-        ("DJANGOPROJECT.COM", nullcontext(True)),
-        ("255.0.0.0", nullcontext(False)),
-        ("fe80::1", nullcontext(False)),
-        ("python..org", nullcontext(False)),
-        ("python-.org", nullcontext(False)),
-        ("1:2:3:4:5:6:7:8", nullcontext(False)),
-        ("stupid-name试", nullcontext(False)),
+        ("000000.org", nullcontext(None)),
+        ("python.org", nullcontext(None)),
+        ("python.co.uk", nullcontext(None)),
+        ("python.tk", nullcontext(None)),
+        ("hg.python.org", nullcontext(None)),
+        ("python-python.com", nullcontext(None)),
+        ("domain.with.idn.tld.उदाहरण.परीक्षकЂҁ", nullcontext(None)),
+        ("例子.测试", nullcontext(None)),
+        ("ıçğü.com", nullcontext(None)),
+        ("python.name.uk", nullcontext(None)),
+        ("dashinpunytld.xn---c", nullcontext(None)),
+        ("xn--7ca6byfyc.com", nullcontext(None)),
+        ("we24.com", nullcontext(None)),
+        ("DJANGOPROJECT.COM", nullcontext(None)),
+        ("255.0.0.0", pytest.raises(ValueError)),
+        ("fe80::1", pytest.raises(ValueError)),
+        ("python..org", pytest.raises(ValueError)),
+        ("python-.org", pytest.raises(ValueError)),
+        ("1:2:3:4:5:6:7:8", pytest.raises(ValueError)),
+        ("stupid-name试", pytest.raises(ValueError)),
         (None, pytest.raises(ValueError)),
         ("", pytest.raises(ValueError)),
         (123, pytest.raises(ValueError)),
@@ -49,26 +48,26 @@ def test_unicode_domain_re(domain, expected):
 @pytest.mark.parametrize(
     "domain, expected",
     [
-        ("000000.org", nullcontext(True)),
-        ("python.org", nullcontext(True)),
-        ("python.co.uk", nullcontext(True)),
-        ("python.tk", nullcontext(True)),
-        ("hg.python.org", nullcontext(True)),
-        ("python-python.com", nullcontext(True)),
-        ("domain.with.idn.tld.उदाहरण.परीक्षकЂҁ", nullcontext(False)),
-        ("例子.测试", nullcontext(False)),
-        ("ıçğü.com", nullcontext(False)),
-        ("python.name.uk", nullcontext(True)),
-        ("dashinpunytld.xn---c", nullcontext(True)),
-        ("xn--7ca6byfyc.com", nullcontext(True)),
-        ("we24.com", nullcontext(True)),
-        ("DJANGOPROJECT.COM", nullcontext(True)),
-        ("255.0.0.0", nullcontext(False)),
-        ("fe80::1", nullcontext(False)),
-        ("python..org", nullcontext(False)),
-        ("python-.org", nullcontext(False)),
-        ("1:2:3:4:5:6:7:8", nullcontext(False)),
-        ("stupid-name试", nullcontext(False)),
+        ("000000.org", nullcontext(None)),
+        ("python.org", nullcontext(None)),
+        ("python.co.uk", nullcontext(None)),
+        ("python.tk", nullcontext(None)),
+        ("hg.python.org", nullcontext(None)),
+        ("python-python.com", nullcontext(None)),
+        ("python.name.uk", nullcontext(None)),
+        ("dashinpunytld.xn---c", nullcontext(None)),
+        ("xn--7ca6byfyc.com", nullcontext(None)),
+        ("we24.com", nullcontext(None)),
+        ("DJANGOPROJECT.COM", nullcontext(None)),
+        ("domain.with.idn.tld.उदाहरण.परीक्षकЂҁ", pytest.raises(ValueError)),
+        ("例子.测试", pytest.raises(ValueError)),
+        ("ıçğü.com", pytest.raises(ValueError)),
+        ("255.0.0.0", pytest.raises(ValueError)),
+        ("fe80::1", pytest.raises(ValueError)),
+        ("python..org", pytest.raises(ValueError)),
+        ("python-.org", pytest.raises(ValueError)),
+        ("1:2:3:4:5:6:7:8", pytest.raises(ValueError)),
+        ("stupid-name试", pytest.raises(ValueError)),
         (None, pytest.raises(ValueError)),
         ("", pytest.raises(ValueError)),
         (123, pytest.raises(ValueError)),
@@ -85,10 +84,10 @@ def test_ascii_domain_re(domain, expected):
 @pytest.mark.parametrize(
     "domain, expected",
     [
-        ("too-long-name." * 20 + "com", nullcontext(False)),
-        ("too-long-name." * 18 + "com", nullcontext(True)),
-        ("000000.org", nullcontext(True)),
-        ("domain.with.idn.tld.उदाहरण.परीक्षकЂҁ", nullcontext(True)),
+        ("000000.org", nullcontext(None)),
+        ("domain.with.idn.tld.उदाहरण.परीक्षकЂҁ", nullcontext(None)),
+        ("too-long-name." * 18 + "com", nullcontext(None)),
+        ("too-long-name." * 20 + "com", pytest.raises(ValueError)),
         (None, pytest.raises(ValueError)),
         ("", pytest.raises(ValueError)),
         (123, pytest.raises(ValueError)),
@@ -105,10 +104,10 @@ def test_default_domain_length(domain, expected):
 @pytest.mark.parametrize(
     "domain, expected",
     [
-        ("too-long-name." * 18 + "com", nullcontext(False)),
-        ("too-long-name." * 10 + "com", nullcontext(True)),
-        ("000000.org", nullcontext(True)),
-        ("domain.with.idn.tld.उदाहरण.परीक्षकЂҁ", nullcontext(True)),
+        ("000000.org", nullcontext(None)),
+        ("domain.with.idn.tld.उदाहरण.परीक्षकЂҁ", nullcontext(None)),
+        ("too-long-name." * 10 + "com", nullcontext(None)),
+        ("too-long-name." * 18 + "com", pytest.raises(ValueError)),
         (None, pytest.raises(ValueError)),
         ("", pytest.raises(ValueError)),
         (123, pytest.raises(ValueError)),
@@ -125,19 +124,21 @@ def test_custom_domain_length(domain, expected):
 @pytest.mark.parametrize(
     "domain, expected",
     [
-        ("google.com", True),
-        ("facebook.com", True),
-        ("dashinpunytld.xn---c", False),
-        ("xn--7ca6byfyc.com", False),
-        ("we24.com", True),
-        ("DJANGOPROJECT.COM", True),
+        ("google.com", nullcontext(None)),
+        ("facebook.com", nullcontext(None)),
+        ("你好.测试.com", nullcontext(None)),
+        ("we24.com", nullcontext(None)),
+        ("DJANGOPROJECT.COM", nullcontext(None)),
+        ("dashinpunytld.xn---c", pytest.raises(ValueError)),
+        ("xn--7ca6byfyc.com", pytest.raises(ValueError)),
     ],
 )
 def test_domain_dns(domain, expected):
     """
     Test the domain name DNS validation.
     """
-    assert domain_validator.validate_domain_dns(domain) == expected
+    with expected as e:
+        assert domain_validator.validate_domain_dns(domain) == e
 
 
 @pytest.mark.parametrize(
@@ -153,7 +154,7 @@ def test_domain_name(domain, expected):
     """
     Test all domain name validation steps using the validate_name function.
     """
-    assert domain_validator.validate_domain(domain) == expected
+    assert domain_validator.is_domain_valid(domain) == expected
 
 
 @pytest.mark.parametrize(
@@ -270,11 +271,11 @@ def test_generate_txt_code(length, expected):
     "prefix, length, expected",
     [
         ("", 26, nullcontext(str)),
+        ("test-domain", 30, nullcontext(str)),
         (b"test-domain", 26, pytest.raises(ValueError)),
         ("test-domain", 0, pytest.raises(ValueError)),
         ("test-domain", 256, pytest.raises(ValueError)),
         ("test-domain", 250, pytest.raises(ValueError)),
-        ("test-domain", 30, nullcontext(str)),
     ],
 )
 def test_generate_prefixed_txt_code(prefix, length, expected):
@@ -306,13 +307,15 @@ def test_generate_prefixed_txt_code(prefix, length, expected):
             "notvalidstacynoland.com",
             "84yfCdasrZejOPNeFuBpgGXcvy",
             None,
-            pytest.raises(resolver.NXDOMAIN),
+            pytest.raises(ValueError),
         ),
     ],
 )
-def test_verify_ownership(domain, txt_code, txt_host, expected):
+def test_domain_ownership(domain, txt_code, txt_host, expected):
     """
     Test the verification of TXT codes.
     """
     with expected as e:
-        assert domain_validator.verify_ownership(domain, txt_code, txt_host) == e
+        assert (
+            domain_validator.domain_ownership_confirmed(domain, txt_code, txt_host) == e
+        )
