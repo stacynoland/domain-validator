@@ -1,9 +1,11 @@
+![Domain Validator Logo](https://github.com/user-attachments/assets/4f304fee-2cee-4560-9c6f-df0c747603fd)
 [![Tests](https://github.com/stacynoland/domain-validator/actions/workflows/tests.yml/badge.svg)](https://github.com/stacynoland/domain-validator/actions/workflows/tests.yml)
 ![Coverage](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fstacynoland.com%2Fdomain-validator%2Fcoverage.json&query=%24.totals.percent_covered_display&suffix=%25&label=coverage&color=3fb831)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/domain-validator?logo=python&logoColor=yellow)
 ![PyPI - Version](https://img.shields.io/pypi/v/domain-validator)
 ![PyPI - Status](https://img.shields.io/pypi/status/domain-validator?label=status)
 [![Black](https://img.shields.io/badge/code%20style-black-000000)](https://github.com/psf/black)
+
 
 # domain-validator
 
