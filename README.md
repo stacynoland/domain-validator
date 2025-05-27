@@ -32,24 +32,25 @@ validator = DomainValidator()
 # Verify domain matches valid pattern
 validator.validate_domain_re("example.com")
 
-# Max domain length check
+# Check against maximum domain length
 validator.validate_domain_length("example.com")
 
-# Verify domain is not a reserved domain and dns resolves
+# Verify domain resolves and is not a reserved domain
 validator.validate_domain_dns("example.com")
 
-# Check regex pattern, length, and dns resolution
-validator.validate_domain("example.com")
+# Verify domain passes all three methods:
+# validate_domain_re, validate_domain_length, and validate_domain_dns
+validator.is_domain_valid("example.com")
 
-# Convert domain to punycode - Only available if unicode is enabled
+# Returns Punycode version of domain - only available when ascii_only is False
 validator.unicode_to_punycode("例子.测试")
 
-# Convert punycode to unicode - Only available if unicode is enabled
+# Returns Unicode version of domain - only available when ascii_only is False
 validator.punycode_to_unicode("xn--fsqu00a.xn--0zwm56d")
 
-# Generate a random code for TXT record verification
+# Generate a random code for TXT record verification with optional prefix
 validator.generate_txt_code("example.com", prefix="myservice")
 
-# Verify the TXT record was added to the domain's DNS
-validator.verify_ownership("example.com", "myservice=84yfCdasrZejOPNeFuBpgGXcvy")
+# Validate domain ownership by checking for TXT record
+validator.validate_domain_ownership("example.com", "myservice=84yfCdasrZejOPNeFuBpgGXcvy")
 ```
