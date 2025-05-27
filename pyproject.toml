@@ -1,6 +1,6 @@
 [project]
 name = "domain-validator"
-version = "0.1.0"
+version = "0.2.0"
 description = "Domain name and ownership validation package for Python"
 authors = [
     {name = "Stacy Noland", email = "stacy.noland@outlook.com"}
