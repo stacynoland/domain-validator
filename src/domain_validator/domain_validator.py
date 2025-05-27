@@ -1,6 +1,7 @@
 import re
 from secrets import choice
 from string import ascii_letters, digits
+from typing import Union
 
 import dns.resolver as resolver
 
@@ -11,10 +12,15 @@ class DomainValidator:
     """
 
     def __init__(self, ascii_only: bool = True, domain_max_length: int = 255):
-        # Domain name pattern with support for Hindi characters specifically included
+        # TODO: Add specific unicode code points for IDNA2003 and IDNA2008
+        # for more concise validation.
+
+        # Per RFC 5891 domain names cannot have a hyphen in the third and fourth
+        # position and cannot have a hyphen at the start or end of a label, except
+        # for the special case of xn-- for Punycode.
         self.domain_re = (
-            r"^((?!-)[\w\u0900-\u097F-]{1,63}(?<!-)"
-            r"\.(?!-)[\w\u0900-\u097F-]{1,63}(?<!-))*$"
+            r"^(?:(?:(?!-|\w{2}--)|(?=xn--))[\w-]{1,63}(?<!-)"
+            r"\.(?:(?!-|\w{2}--)|(?=xn--))[\w-]{1,63}(?<!-))+$"
         )
         self.ascii_only = ascii_only  # Flag for only ASCII characters
         self.domain_max_length = domain_max_length  # Domain name maximum length
@@ -160,20 +166,15 @@ class DomainValidator:
         """
         Generate a random verification code for TXT record with optional prefix.
 
-        Example:
-            >>> generate_txt_code()
-            '84yfCdasrZejOPNeFuBpgGXcvy'
-
-        Example:
-            >>> generate_txt_code(length=30, prefix="site_verify")
-            'site_verify=84yfCdasrZejOPNeFuBpgGXcvy'
-
         Parameters:
             length -- Length of the random code to generate.
             prefix -- Optional prefix for the code (e.g., site_verify).
 
         Returns:
             str -- Generated string with random verification code.
+
+        Raises:
+            ValueError -- There is an issue with the prefix or length.
         """
         if prefix and not isinstance(prefix, str):
             raise ValueError("Prefix must be a string.")
@@ -188,21 +189,12 @@ class DomainValidator:
             return f"{prefix}={code}"
         return code
 
-    def domain_ownership_confirmed(
+    def validate_domain_ownership(
         self, domain: str, txt_code: str, txt_host: str = ""
-    ) -> bool:
+    ) -> Union[str, None]:
         """
         Verify domain ownership/control of a domain by checking TXT records
         contain the specified TXT code.
-
-        Example:
-            >>> domain_ownership_confirmed("example.com", "84yfCdasrZejOPNeFuBpgGXcvy")
-            True
-
-            >>> domain_ownership_confirmed(
-                    "example.com", "test_txt=84yfCdasrZejOPNeFuBpgGXcvy", "subdomain"
-                )
-            True
 
         Parameters:
             domain -- Domain being verified.
@@ -210,7 +202,7 @@ class DomainValidator:
             txt_host -- Optional host (i.e., subdomain) for the TXT record.
 
         Returns:
-            bool -- True if a TXT record contains the code, False otherwise.
+            str -- The TXT record that contains the code, None otherwise.
 
         Raises:
             ValueError -- Domain name is invalid or TXT records cannot be resolved.
@@ -219,11 +211,15 @@ class DomainValidator:
             raise ValueError("Invalid domain name.")
         if txt_host:
             domain = f"{txt_host}.{domain}"
+        txt_found = None
         try:
             response = resolver.resolve(domain, "TXT")
             for rdata in response:
-                if txt_code == rdata.to_text().strip('"'):
-                    return True
+                txt_found = (
+                    rdata.to_text().strip('"')
+                    if rdata.to_text().strip('"') == txt_code
+                    else None
+                )
         except (resolver.NXDOMAIN, resolver.NoAnswer) as e:
             raise ValueError("Error resolving TXT records:") from e
-        return False
+        return txt_found
