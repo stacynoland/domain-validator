@@ -45,7 +45,7 @@ packages = [{include = "domain_validator", from = "src"}]
 optional = true
 
 [tool.poetry.group.cli.dependencies]
-typer = "^0.15.3"
+typer = "^0"
 
 [tool.poetry.group.dev]
 optional = true
